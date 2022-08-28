@@ -1,5 +1,5 @@
 {
-  "name": "coder-at-heart/object-model",
+  "name": "coder-at-heart/object-models",
   "description": "Add schema, control and cast php json as objects and arrays for Laravel projects",
   "keywords": [
     "coder at heart",
