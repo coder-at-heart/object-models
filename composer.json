@@ -1,6 +1,23 @@
 {
   "name": "composer-at-heart/object-model",
-  "description": "A handy way to create, control and cast php data objects",
+  "description": "Add schema, control and cast php json as objects and arrays for Laravel projects",
+  "keywords": [
+    "coder at heart",
+    "object models",
+    "json models",
+    "array models",
+    "laravel-package",
+    "json casts",
+    "array casts"
+  ],
+  "authors": [
+    {
+      "name": "Coder At Heart",
+      "email": "contact@coderatheart.com",
+      "homepage": "https://coderatheart.com",
+      "role": "Developer"
+    }
+  ],
   "type": "library",
   "license": "MIT",
   "require": {
@@ -28,5 +45,7 @@
     "allow-plugins": {
       "pestphp/pest-plugin": true
     }
-  }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }
