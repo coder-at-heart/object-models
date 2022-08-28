@@ -445,6 +445,5 @@ Let me know... somehow.
 
 ObjectModel is licensed under the [MIT License](LICENSE).
 
-## Change Log
 
-- 1.0.0 Initial release
+v1.0.1
