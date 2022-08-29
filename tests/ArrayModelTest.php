@@ -1,25 +1,28 @@
 <?php
 
 use Carbon\Carbon;
+use CoderAtHeart\ObjectModel\ArrayModel;
 use CoderAtHeart\ObjectModel\Tests\Models\People;
 use CoderAtHeart\ObjectModel\Tests\Models\Person;
 use CoderAtHeart\ObjectModel\Tests\Models\Phone;
 
 /** @var Person[] $people */
 /** @var Person[] $people2 */
-$people = People::createFrom(array: [
-    [
-        'name' => 'Sunil',
-    ],
-    [
-        'name' => 'Jeff',
-        'age'  => 54,
-    ],
-    [
-        'name' => 'Ed',
-        'age'  => 34,
-    ],
-]);
+$people = new ArrayModel(
+    objectModel: Person::class,
+    array      : [
+        [
+            'name' => 'Sunil',
+        ],
+        [
+            'name' => 'Jeff',
+            'age'  => 54,
+        ],
+        [
+            'name' => 'Ed',
+            'age'  => 34,
+        ],
+    ]);
 
 test('objects are created successfully', function () use ($people) {
     expect($people)->toHaveCount(3);
@@ -33,7 +36,7 @@ test('objects are created successfully', function () use ($people) {
 
 test('we can duplicate arrays from arrays and json', function () use ($people) {
     $json    = $people->toJson();
-    $people2 = People::createFrom(json: $json);
+    $people2 = People::create(json: $json);
     expect($people2)->toHaveCount(3);
     expect($people2[0]->name)->toBe('Sunil');
     expect($people2[1]->name)->toBe('Jeff');
@@ -44,7 +47,7 @@ test('we can duplicate arrays from arrays and json', function () use ($people) {
 });
 
 test('we can add to the  array', function () use ($people) {
-    $people[] = Person::createFrom(array: ['name' => 'Marcus', 'alarm' => '05:30:00']);
+    $people[] = Person::create(array: ['name' => 'Marcus', 'alarm' => '05:30:00']);
     expect($people)->toHaveCount(4);
 
     expect($people[3]->name)->toBe('Marcus');
