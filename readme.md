@@ -2,7 +2,7 @@
 
 This Laravel package:
 
-- Provides an fluent way to define structure / schema over objects
+- Provides a fluent way to define structure / schema over objects
 - Allows you to validate those objects in a consistent way 
 - Easily cast eloquent json attributes to objectModels for easy handling
 - Reduces the number of meta tables in your app
@@ -23,14 +23,16 @@ composer require coder-at-heart/object-model
 
 ## Defining ObjectModels
 
-Extend the ObjectModel class and extend override the definition method
+Extend the ObjectModel class and extend override the `properties()` method
 
 I usually create an `app/ObjectModels` folder to store my models
 
-Here's a `Person` :
+Here's an example from the tests folder:
 
 ```php
 <?php
+
+namespace CoderAtHeart\ObjectModel\Tests\Models;
 
 use Carbon\Carbon;
 use CoderAtHeart\ObjectModel\ObjectModel;
@@ -45,6 +47,9 @@ use CoderAtHeart\ObjectModel\Property;
  * @property Phone[] phone_numbers
  * @property Carbon birthday
  * @property Carbon alarm
+ * @property bool subscribed
+ * @property array friends
+ * @property Carbon[] important_dates
  */
 class Person extends ObjectModel
 {
@@ -52,33 +57,40 @@ class Person extends ObjectModel
     public static function properties(): array
     {
         return [
-            Property::string('name'),
-            Property::integer('age'),
+            Property::string('name')->required(),
+            Property::integer('age')->nullable(),
             Property::email('email'),
             Property::objectModel('home', Address::class),
             Property::objectModel('business', Address::class),
-            Property::array('phone_numbers', PhonesNumbers::class),
+            Property::objectModelArray('phone_numbers', Phone::class),
             Property::date('birthday'),
-            Property::time('alarm'),
+            Property::time('alarm')->default('08:00:00'),
+            Property::bool('subscribed')->default(false),
+            Property::array('friends'),
+            Property::propertyArray('important_dates', Property::date('date')),
         ];
     }
 
 }
+
 ```
 
 And the `Address`
 
 ```php
-<?php
+
+namespace CoderAtHeart\ObjectModel\Tests\Models;
 
 use CoderAtHeart\ObjectModel\ObjectModel;
 use CoderAtHeart\ObjectModel\Property;
+use CoderAtHeart\ObjectModel\Tests\ENUMs\Country;
 
 /**
  * @property string address_1
  * @property string address_2
  * @property string city
  * @property string postcode
+ * @property Country country_code
  */
 class Address extends ObjectModel
 {
@@ -89,18 +101,36 @@ class Address extends ObjectModel
             Property::string('address_1'),
             Property::string('address_2'),
             Property::string('city'),
+            Property::enum('country_code', Country::class)->default(Country::GB)->required(),
             Property::string('postcode'),
         ];
     }
 
 }
-
 ```
 
-And a `Phone`:
+The `Country` ENUM
 
 ```php
 <?php
+
+namespace CoderAtHeart\ObjectModel\Tests\ENUMs;
+
+enum Country : string
+{
+
+   case US = 'us';
+   case GB = 'gb';
+
+}
+```
+
+And the `Phone`:
+
+```php
+<?php
+
+namespace CoderAtHeart\ObjectModel\Tests\Models;
 
 use CoderAtHeart\ObjectModel\ObjectModel;
 use CoderAtHeart\ObjectModel\Property;
@@ -121,22 +151,6 @@ class Phone extends ObjectModel
     }
 
 }
-```
-
-...and lastly and array of `Phone` numbers
- 
-```php
-<?php
-
-use CoderAtHeart\ObjectModel\ArrayModel;
-
-class PhonesNumbers extends ArrayModel
-{
-
-    protected string $objectModel = Phone::class;
-
-}
-
 ```
 
 Note the use of the docBlock at the top of the classes - this helps with type hinting in your ide.
@@ -174,6 +188,13 @@ $person = Person::createFrom(array:[
         ],
     ],
     'birthday' => '1990-01-01'  
+    'important_dates' => [
+        '2011-01-01 01:01:01',
+        '2012-02-02 02:02:02',
+        '2013-03-03 03:03:03',
+        '2014-04-06 04:04:04',
+        '2015-05-06 05:05:05',
+    ]
 ]);
 
 echo $person->name;
@@ -212,7 +233,10 @@ You don't need an Object Model to use an Array Object:
 
 ```php
 <?php
-$numbers = new  PhonesNumbers();
+
+use CoderAtHeart\ObjectModel\ArrayModel;
+
+$numbers = ArrayModel::create(objectModel: Phone::class);
 
 // Create a new phone number
 $homePhone         = new Phone();
@@ -228,6 +252,7 @@ $numbers[] = [
     'number' => '01234 567890',
 ];
 
+// Access it like an object
 echo $numbers[1]->label;
 
 ```
@@ -252,7 +277,7 @@ class PersonCast implements CastsAttributes
 
     public function get($model, string $key, $value, array $attributes)
     {
-        return Person::createFrom(json: $value);
+        return Person::create(json: $value);
     }
 
     public function set($model, string $key, $value, array $attributes)
@@ -271,7 +296,7 @@ And ArrayModels:
 namespace App\Casts;
 
 use App\ObjectModels\PhonesNumbers;
-use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use CoderAtHeart\ObjectModel\ArrayModel;use CoderAtHeart\ObjectModel\Tests\Models\Person;use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 
 class LogCast implements CastsAttributes
@@ -279,7 +304,9 @@ class LogCast implements CastsAttributes
 
     public function get($model, string $key, $value, array $attributes)
     {
-        return PhonesNumbers::createFrom(json: $value);
+        return PhonesNumbers::create(json: $value);
+      // or
+        return ArrayModel::create(json: $value, objectModel: Phone::class);
     }
 
     public function set($model, string $key, $value, array $attributes)
@@ -292,21 +319,23 @@ class LogCast implements CastsAttributes
 
 ## Built-in Property Types
 
-| **Type**                 | **Create With**                                   | **Underlying Object** |
-|--------------------------|---------------------------------------------------|-----------------------|
-| Integer                  | `Property::integer();`                            | php integer           |
-| Strings                  | `Property::string();`                             | php string            |
-| Email                    | `Property::email();`                              | php string            |
-| Date                     | `Property::date();`                               | `Carbon`              |
-| Time                     | `Property::time();`                               | `Carbon`              |
-| DateTime                 | `Property::dateTime();`                           | `Carbon`              |
-| Another Model            | `Property::objectModel();`                        | `ObjectModel `        |
-| an Array                 | `Property::array();`                              | php array             |
-| an Array of Other Models | `Property::array(arrayModel: ArrayModel::class);` | `ArrayModel`          |
-| mixed                    | `Property::mixed();`                              | any                   |
-| an Object                | `Property::object();`                             | the Object            |
-| Bool                     | `Property::bool();`                               | php bool              |
-| ENUM                     | `Property::enum();`                               | php ENUM              |
+| **Type**                 | **Create With**                | **Underlying Object** |
+|--------------------------|--------------------------------|-----------------------|
+| Another Model            | `Property::objectModel();`     | `ObjectModel `        |
+| Bool                     | `Property::bool();`            | php bool              |
+| Date                     | `Property::date();`            | `Carbon`              |
+| DateTime                 | `Property::dateTime();`        | `Carbon`              |
+| ENUM                     | `Property::enum();`            | php ENUM              |
+| Email                    | `Property::email();`           | php string            |
+| Float                    | `Property::float();`           | php string            |
+| Integer                  | `Property::integer();`         | php integer           |
+| Strings                  | `Property::string();`          | php string            |
+| Time                     | `Property::time();`            | `Carbon`              |
+| an Array                 | `Property::array();`           | php array             |
+| an Array of other models | `Property::objectModelArray(); | arrayModel            |
+| an Array of property     | `Property::propertyArray();    | arrayModel            |
+| an Object                | `Property::object();`          | the Object            |
+| mixed                    | `Property::mixed();`           | any                   |
 
 
 ## Custom Property Types
@@ -446,4 +475,4 @@ Let me know... somehow.
 ObjectModel is licensed under the [MIT License](LICENSE).
 
 
-v1.0.2
+v1.1.0

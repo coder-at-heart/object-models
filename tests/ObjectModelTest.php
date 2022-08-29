@@ -1,23 +1,34 @@
 <?php
 
 use Carbon\Carbon;
+use CoderAtHeart\ObjectModel\ArrayModel;
 use CoderAtHeart\ObjectModel\Tests\ENUMs\Country;
 use CoderAtHeart\ObjectModel\Tests\Models\Address;
 use CoderAtHeart\ObjectModel\Tests\Models\AddressUS;
 use CoderAtHeart\ObjectModel\Tests\Models\Person;
 use CoderAtHeart\ObjectModel\Tests\Models\Phone;
-use CoderAtHeart\ObjectModel\Tests\Models\PhoneNumbers;
 
-$sunil = Person::createFrom(array: [
-    'name'  => 'Sunil',
-    'age'   => 50,
-    'email' => 'spam.me.to.death@coderatheart.com',
+$sunil = Person::create(array: [
+    'name'          => 'Sunil',
+    'age'           => 50,
+    'email'         => 'spam.me.to.death@coderatheart.com',
+    'phone_numbers' => [
+        'home'     => [
+            'label'  => 'home',
+            'number' => '01234 567890',
+        ],
+        'business' => [
+            'label'  => 'business',
+            'number' => '01234 567890',
+        ],
+    ],
 ]);
 
 test('properties are as expected', function () use ($sunil) {
     expect($sunil->name)->toBeString()->toBe('Sunil');
     expect($sunil->age)->toBeInt()->toBe(50);
     expect($sunil->email)->toBeString()->toBe('spam.me.to.death@coderatheart.com');
+    expect($sunil->important_dates)->toBeInstanceOf(ArrayModel::class);
     expect($sunil->home)->toBeInstanceOf(Address::class);
     expect($sunil->home->address_1)->toBeString()->toBeEmpty();
     expect($sunil->home->address_2)->toBeString()->toBeEmpty();
@@ -30,7 +41,10 @@ test('properties are as expected', function () use ($sunil) {
     expect($sunil->business->city)->toBeString()->toBeEmpty();
     expect($sunil->business->postcode)->toBeString()->toBeEmpty();
     expect($sunil->business->country_code)->toBe(Country::GB);
-    expect($sunil->phone_numbers)->toBeInstanceOf(PhoneNumbers::class)->toBeEmpty();
+    expect($sunil->phone_numbers)->toBeInstanceOf(ArrayModel::class)->toHaveCount(2);
+    expect($sunil->phone_numbers['home'])->toBeInstanceOf(Phone::class);
+    expect($sunil->phone_numbers['home']->label)->toBe('home');
+    expect($sunil->phone_numbers['home']->number)->toBe('01234 567890');
     expect($sunil->birthday->format('Y-m-d H:i'))->toBe(Carbon::now()->format('Y-m-d H:i'));
     expect($sunil->alarm->format('g:i a'))->toBe('8:00 am');
     expect($sunil->subscribed)->toBeBool()->toBe(false);
@@ -74,22 +88,50 @@ test('we can work with normal arrays', function () use ($sunil) {
     expect($sunil->friends)->toHaveCount(4);
 });
 
-test('we can create an object arrays', closure: function () use ($sunil) {
-    expect(count($sunil->phone_numbers))->toBe(0);
+test('we can create an property arrays', closure: function () use ($sunil) {
+    expect(count($sunil->important_dates))->toBe(0);
 
-    $homePhone                    = new Phone();
-    $homePhone->label             = 'home';
-    $homePhone->number            = '01234 567890';
-    $sunil->phone_numbers['home'] = $homePhone;
-    expect($sunil->phone_numbers)->toHaveCount(1);
-    $sunil->phone_numbers['business'] = Phone::createFrom(array: [
-        'label'  => 'mobile',
-        'number' => '07123 987654',
-    ]);
-    expect($sunil->phone_numbers)->toHaveCount(2);
+    $sunil->important_dates[] = '1981-01-02';
+    expect($sunil->important_dates)->toHaveCount(1);
+    expect($sunil->important_dates[0])->toBeInstanceOf(Carbon::class);
+
+    expect($sunil->important_dates[0]->format('d/m/Y'))->toBe('02/01/1981');
+    $sunil->important_dates[0] = Carbon::now();
+    expect($sunil->important_dates[0])->toBeInstanceOf(Carbon::class);
+    expect($sunil->important_dates[0]->format('d/m/Y'))->toBe(Carbon::now()->format('d/m/Y'));
+
+    $sunil->important_dates[] = Carbon::createFromFormat('d/m/Y', '29/03/1972');
+    expect($sunil->important_dates)->toHaveCount(2);
+    expect($sunil->important_dates[1])->toBeInstanceOf(Carbon::class);
+    expect($sunil->important_dates[1]->format('d/m/Y'))->toBe('29/03/1972');
+
+    $sunil->important_dates = ['1981-01-02', '1983-10-10'];
+    expect($sunil->important_dates)->toHaveCount(2);
+    $sunil->important_dates = [new Carbon('1981-01-02'), new Carbon('1983-10-10')];
+    expect($sunil->important_dates)->toHaveCount(2);
+    expect($sunil->important_dates->toArray())->toBe(['1981-01-02', '1983-10-10']);
 
     $json    = $sunil->toJson();
-    $person2 = Person::createFrom(json: $json);
+    $person2 = Person::create(json: $json);
+    expect($person2->toJson())->toBe($json);
+});
+
+test('we can create an object arrays', closure: function () use ($sunil) {
+    expect(count($sunil->phone_numbers))->toBe(2);
+
+    $homePhone                      = new Phone();
+    $homePhone->label               = 'mobile';
+    $homePhone->number              = '01234 567890';
+    $sunil->phone_numbers['mobile'] = $homePhone;
+    expect($sunil->phone_numbers)->toHaveCount(3);
+    $sunil->phone_numbers['fax'] = Phone::create(array: [
+        'label'  => 'fax',
+        'number' => '07123 987654',
+    ]);
+    expect($sunil->phone_numbers)->toHaveCount(4);
+
+    $json    = $sunil->toJson();
+    $person2 = Person::create(json: $json);
     expect($person2->toJson())->toBe($json);
 });
 
@@ -123,15 +165,15 @@ test('that we can create a new object from json', function () {
         'birthday'      => '1990-01-01',
         'alarm'         => '10:00:00',
     ]);
-    $coder = Person::createFrom(json: $json);
+    $coder = Person::create(json: $json);
     expect($coder->phone_numbers)->toHaveCount(2);
     $json  = $coder->toJson();
-    $clone = Person::createFrom(json: $json);
+    $clone = Person::create(json: $json);
     expect($json)->toBe($clone->toJson());
 });
 
 test('we can create an object with custom properties', function () {
-    $usAddress = AddressUS::createFrom(array: [
+    $usAddress = AddressUS::create(array: [
         'address_1' => 'Some Street',
         'address_2' => 'Some Area',
         'city'      => 'LA',

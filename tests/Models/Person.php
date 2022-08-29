@@ -5,12 +5,12 @@ namespace CoderAtHeart\ObjectModel\Tests\Models;
 use Carbon\Carbon;
 use CoderAtHeart\ObjectModel\ObjectModel;
 use CoderAtHeart\ObjectModel\Property;
-use CoderAtHeart\ObjectModel\Tests\Objects\Invoice;
 
 /**
  * @property string name
  * @property int age
  * @property string email
+ * @property Carbon[] important_dates
  * @property Address home
  * @property Address business
  * @property Phone[] phone_numbers
@@ -28,9 +28,10 @@ class Person extends ObjectModel
             Property::string('name'),
             Property::integer('age'),
             Property::email('email'),
+            Property::propertyArray('important_dates', Property::date('date')),
             Property::objectModel('home', Address::class),
             Property::objectModel('business', Address::class),
-            Property::array('phone_numbers', PhoneNumbers::class),
+            Property::objectModelArray('phone_numbers', Phone::class),
             Property::date('birthday'),
             Property::time('alarm')->default('08:00:00'),
             Property::bool('subscribed')->default(false),

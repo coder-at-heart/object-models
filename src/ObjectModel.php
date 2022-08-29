@@ -4,13 +4,14 @@ namespace CoderAtHeart\ObjectModel;
 
 use CoderAtHeart\ObjectModel\Exceptions\ObjectModelException;
 use CoderAtHeart\ObjectModel\Models\ObjectValidation;
-use CoderAtHeart\ObjectModel\Traits\ConvertsTo;
+use CoderAtHeart\ObjectModel\Traits\CanBeConverted;
+use CoderAtHeart\ObjectModel\Traits\HasName;
 use JsonSerializable;
 
 class ObjectModel implements JsonSerializable
 {
 
-    use ConvertsTo;
+    use HasName,CanBeConverted;
 
     /**
      * Used to store the post data
@@ -20,39 +21,50 @@ class ObjectModel implements JsonSerializable
 
 
 
-    public function __construct(array $data = [])
+    /**
+     * Constructor
+     *
+     * @param  array  $array
+     * @param  string  $json
+     *
+     * @throws ObjectModelException
+     */
+    public function __construct(array $array = [], string $json = '')
     {
+        if ($json && ! empty($array)) {
+            throw ObjectModelException::withMessage('Cannot create ObjectModel, expected either array or json data. Both specified.');
+        }
+
         $this->_properties = new Properties(static::properties());
 
-        if ( ! empty($data)) {
-            $this->fill($data);
+        if ($json) {
+            $this->fill(json_decode($json, JSON_OBJECT_AS_ARRAY));
+        }
+        if ( ! empty($array)) {
+            $this->fill($array);
         }
     }
 
 
 
     /**
-     * Static creator to instantiate this opbject from either an array or Json
+     * Static creator to instantiate this object from either an array or Json
      *
      * Object::CreateFrom(array: $arrayData);
      * Object::CreateFrom(json: $jsonString);
      *
      * @param  array  $array
-     * @param  mixed  $json
+     * @param  string  $json
      *
      * @return static
      * @throws ObjectModelException
      */
-    public static function createFrom(array $array = [], mixed $json = ''): static
+    public static function create(array $array = [], string $json = ''): static
     {
-        $object = new static();
-        if ( ! empty($json)) {
-            $array = json_decode($json, JSON_OBJECT_AS_ARRAY);
-        }
-        if (empty($array)) {
-            return $object;
-        }
-        return $object->fill($array);
+        return new static(
+            array: $array,
+            json : $json
+        );
     }
 
 
@@ -254,7 +266,7 @@ class ObjectModel implements JsonSerializable
             }
         }
 
-        return ObjectValidation::createFrom(array: [
+        return ObjectValidation::create(array: [
             'name'   => static::class,
             'valid'  => $valid,
             'errors' => $errors,

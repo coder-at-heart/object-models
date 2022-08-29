@@ -5,7 +5,8 @@ namespace CoderAtHeart\ObjectModel;
 use ArrayAccess;
 use CoderAtHeart\ObjectModel\Exceptions\ObjectModelException;
 use CoderAtHeart\ObjectModel\Models\ObjectValidation;
-use CoderAtHeart\ObjectModel\Traits\ConvertsTo;
+use CoderAtHeart\ObjectModel\Traits\CanBeConverted;
+use CoderAtHeart\ObjectModel\Traits\HasName;
 use Countable;
 use Iterator;
 use JsonSerializable;
@@ -16,26 +17,26 @@ use JsonSerializable;
 class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
 {
 
-    use ConvertsTo;
-
-    /**
-     * The name of the property
-     *
-     * @var string
-     */
-    protected string $name = '';
+    use HasName,CanBeConverted;
 
     /**
      * The Object Model that each element represents
      *
      * @var string
      */
-    protected string $objectModel;
+    protected string $objectModel = '';
+
+    /**
+     * TheProperty that each element represents
+     *
+     * @var Property
+     */
+    protected Property $property;
 
     /**
      * The array of items
      *
-     * @var ObjectModel[]
+     * @var ObjectModel[]|Property[]
      */
     private array $items = [];
 
@@ -52,38 +53,71 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
      * Constructor
      *
      * @param  string  $name
+     * @param  string|null  $objectModel
+     * @param  Property|null  $property
+     * @param  array  $array
+     * @param  string|null  $json
+     *
+     * @throws ObjectModelException
      */
-    public function __construct(string $name = '')
+    public function __construct(string $name = '', string $objectModel = null, Property $property = null, array $array = [], string $json = null)
     {
+        if ($property && $objectModel) {
+            throw ObjectModelException::withMessage('Cannot create ArrayModel, expected either objectModel or property. Both specified');
+        }
+
+        // If we dont have a deinition already
+        if ( ! isset($this->property) && ! $this->objectModel) {
+            // then make sure we have one on the constrcutor
+            if ( ! $property && ! $objectModel) {
+                throw ObjectModelException::withMessage('Cannot create ArrayModel, expected either objectModel or property. Neither specified');
+            }
+        }
+
+        if ($json && ! empty($array)) {
+            throw ObjectModelException::withMessage('Cannot create ArrayModel, expected either array or json data. Both specified.');
+        }
+
         if ($name) {
             $this->name = $name;
+        }
+        if ($objectModel) {
+            $this->objectModel = $objectModel;
+        }
+        if ($property) {
+            $this->property = $property;
+        }
+        if ($json) {
+            $this->fill(json_decode($json, JSON_OBJECT_AS_ARRAY));
+        }
+        if ($array) {
+            $this->fill($array);
         }
     }
 
 
 
     /**
-     * Static creator to instantiate this opbject from either an array or Json
+     * static creator
      *
-     * Object::CreateFrom(array: $arrayData);
-     * Object::CreateFrom(json: $jsonString);
-     *
+     * @param  string  $name
+     * @param  string|null  $objectModel
+     * @param  Property|null  $property
      * @param  array  $array
-     * @param  mixed  $json
+     * @param  string|null  $json
      *
      * @return static
      * @throws ObjectModelException
      */
-    public static function createFrom(array $array = [], mixed $json = ''): static
+    public static function create(string $name = '', string $objectModel = null, Property $property = null, array $array = [], string $json = null): static
     {
-        $object = new static();
-        if ( ! empty($json)) {
-            $array = json_decode($json, JSON_OBJECT_AS_ARRAY);
-        }
-        if (empty($array)) {
-            return $object;
-        }
-        return $object->fill($array);
+        return new static(
+            name       : $name,
+            objectModel: $objectModel,
+            property   : $property,
+            array      : $array,
+            json       : $json
+        );
     }
 
 
@@ -122,15 +156,26 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
      */
     public function fill(array $array): static
     {
+        if ( ! $this->objectModel && ! isset($this->property)) {
+            throw ObjectModelException::withMessage("Cannot create array, no objectModel or property has been set");
+        }
         foreach ($array as $arrayKey => $arrayValue) {
-            if ($arrayValue instanceof $this->objectModel) {
+            if (
+                ($this->objectModel && $arrayValue instanceof $this->objectModel) ||
+                (isset($this->property) && is_object($arrayValue) && get_class($arrayValue) === get_class($this->property))
+            ) {
                 $this[$arrayKey] = $arrayValue;
                 continue;
             }
-            /** @var ObjectModel $objectModel */
-            $objectModel = $this->objectModel;
+            if ($this->objectModel) {
+                /** @var ObjectModel $objectModel */
 
-            $this[$arrayKey] = $objectModel::createFrom(array: $arrayValue);
+                $objectModel     = $this->objectModel;
+                $this[$arrayKey] = $objectModel::create(array: $arrayValue);
+            } else {
+                $property        = clone $this->property;
+                $this[$arrayKey] = $property->set($arrayValue);
+            }
         }
 
         return $this;
@@ -189,11 +234,11 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
     /**
      * @param  mixed  $offset
      *
-     * @return ObjectModel
+     * @return mixed
      */
-    public function offsetGet(mixed $offset): ObjectModel
+    public function offsetGet(mixed $offset): mixed
     {
-        return $this->items[$offset];
+        return isset($this->property) ? $this->items[$offset]->value : $this->items[$offset];
     }
 
 
@@ -207,19 +252,21 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
      */
     public function offsetSet(mixed $offset, mixed $value): void
     {
-        $objectModel = $this->objectModel;
-        /**
-         * @var ObjectModel $objectModel
-         */
         // we don't have an instance of the object, they're setting this as an array.
-        if ( ! $value instanceof $this->objectModel) {
+        if ($this->objectModel && ! $value instanceof $this->objectModel) {
+            /** @var ObjectModel $objectModel */
+            $objectModel = $this->objectModel;
             if (is_array($value)) {
                 // We're creating one from an array
-                $value = $objectModel::createFrom(array: $value);
+                $value = $objectModel::create(array: $value);
             } else {
                 // Must be json...  but we should never get here.
-                $value = $objectModel::createFrom(json: $value);
+                $value = $objectModel::create(json: $value);
             }
+        } elseif (isset($this->property) && ! $value instanceof $this->property) {
+            $property = clone $this->property;
+            $property->set($value);
+            $value = $property;
         }
         if (is_null($offset)) {
             $this->items[] = $value;
@@ -299,7 +346,7 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
                 $errors["{$name}[{$index}]"] = $validationStatus->errors;
             }
         }
-        return ObjectValidation::createFrom(array: [
+        return ObjectValidation::create(array: [
             'name'   => $name,
             'valid'  => $valid,
             'errors' => $errors,

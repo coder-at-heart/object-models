@@ -8,6 +8,8 @@ use Closure;
 use CoderAtHeart\ObjectModel\Exceptions\ObjectModelException;
 use CoderAtHeart\ObjectModel\Models\ObjectValidation;
 use CoderAtHeart\ObjectModel\Rules\IsInstanceOf;
+use CoderAtHeart\ObjectModel\Traits\CanBeConverted;
+use CoderAtHeart\ObjectModel\Traits\HasName;
 use DateTimeZone;
 use Illuminate\Support\Facades\Validator;
 use JsonSerializable;
@@ -15,9 +17,10 @@ use JsonSerializable;
 class Property implements JsonSerializable
 {
 
+    use HasName, CanBeConverted;
+
     /**
      * The value for this property.
-     * This is public in order for it can be pulled by reference see &__get in reservation Object Model
      *
      * @var mixed|null
      */
@@ -28,28 +31,21 @@ class Property implements JsonSerializable
      *
      * @var array
      */
-    private array $rules = [];
-
-    /**
-     * The property name
-     *
-     * @var string
-     */
-    private string $name;
+    protected array $rules = [];
 
     /**
      * the callback that converts this to be stored as json
      *
      * @var Closure
      */
-    private Closure $json_callback;
+    protected Closure $json_callback;
 
     /**
      * What to do when the value is set.
      *
      * @var Closure
      */
-    private Closure $set_callback;
+    protected Closure $set_callback;
 
 
 
@@ -58,9 +54,11 @@ class Property implements JsonSerializable
      *
      * @param  string  $name
      */
-    public function __construct(string $name)
+    public function __construct(string $name = '')
     {
-        $this->name = $name;
+        if ($name) {
+            $this->name = $name;
+        }
         $this->jsonCallback(function ($value) {
             return $value;
         });
@@ -72,42 +70,30 @@ class Property implements JsonSerializable
 
 
     /**
-     * An Array property
+     * A normal php array
      *
      * @param  string  $name
-     * @param  string|null  $arrayModel
      *
-     * @return static
+     * @return Property
      */
-    public static function array(string $name, string $arrayModel = null): Property
+    public static function array(string $name): Property
     {
-        // If there is no object model, then this is just a plain array of data.
-        if ($arrayModel) {
-            $array = new $arrayModel(name: $name);
-            $rule    = new IsInstanceOf($arrayModel);
-        } else {
-            $array = [];
-            $rule    = 'array';
-        }
+        return static::arrayProperty(name: $name);
+    }
 
-        return self::property($name)
-            ->addRule($rule)
-            ->setCallback(function ($value) use ($name, $array, $arrayModel) {
-                if (is_null($value)) {
-                    return $array;
-                }
 
-                if ( ! is_countable($value)) {
-                    throw ObjectModelException::withMessage("{$name} expected an array of data");
-                }
 
-                if ($arrayModel && count($value) > 0) {
-                    return $array->fill($value);
-                }
-
-                return $value;
-            })
-            ->set(null);
+    /**
+     * an Array Model Object
+     *
+     * @param  string  $name
+     * @param  string  $arrayModel
+     *
+     * @return Property
+     */
+    public static function arrayModel(string $name, string $arrayModel): Property
+    {
+        return static::arrayProperty(name: $name, arrayModel: $arrayModel);
     }
 
 
@@ -341,7 +327,6 @@ class Property implements JsonSerializable
         return self::property($name)
             ->addRule(new IsInstanceOf($objectModel))
             ->setCallback(function ($value) use ($name, $objectModel) {
-
                 if (is_null($value)) {
                     return new $objectModel;
                 }
@@ -355,13 +340,35 @@ class Property implements JsonSerializable
                     throw ObjectModelException::withMessage("{$name} expected class {$objectModel} received instance of ".get_class($value));
                 }
 
-                return $objectModel::createFrom(array: $value);
+                return $objectModel::create(array: $value);
             })
             ->set(null);
     }
 
 
 
+    /**
+     * A dynamically created array of object models
+     *
+     * @param  string  $name
+     * @param  string  $objectModel
+     *
+     * @return Property
+     */
+    public static function objectModelArray(string $name, string $objectModel): Property
+    {
+        return static::arrayProperty(name: $name, objectModel: $objectModel);
+    }
+
+
+
+    /**
+     * static constructor
+     *
+     * @param  string  $name
+     *
+     * @return Property
+     */
     public static function property(string $name): Property
     {
         $property = new self($name);
@@ -373,7 +380,22 @@ class Property implements JsonSerializable
 
 
     /**
-     * A String property
+     * An Array of properties
+     *
+     * @param  string  $name
+     * @param  Property  $property
+     *
+     * @return Property
+     */
+    public static function propertyArray(string $name, Property $property): Property
+    {
+        return static::arrayProperty(name: $name, property: $property);
+    }
+
+
+
+    /**
+     * A string property
      *
      * @param  string  $name
      *
@@ -387,7 +409,7 @@ class Property implements JsonSerializable
 
 
     /**
-     * Time - but using Carbon
+     * Time property - uses Carbon
      *
      * @param  string  $name
      * @param  string  $format
@@ -403,7 +425,7 @@ class Property implements JsonSerializable
 
 
     /**
-     * A url property
+     * rl property
      *
      * @param  string  $name
      *
@@ -419,7 +441,7 @@ class Property implements JsonSerializable
 
 
     /**
-     * adda  rule
+     * add a laravel validation rule
      *
      * @param  mixed  $rule
      *
@@ -428,6 +450,21 @@ class Property implements JsonSerializable
     public function addRule(mixed $rule): Property
     {
         $this->rules[] = $rule;
+        return $this;
+    }
+
+
+
+    /**
+     * Set a bunch of rules
+     *
+     * @param  array  $rules
+     *
+     * @return $this
+     */
+    public function addRules(array $rules): Property
+    {
+        $this->rules = array_merge($this->rules, $rules);
         return $this;
     }
 
@@ -448,18 +485,6 @@ class Property implements JsonSerializable
 
 
     /**
-     * get the name of the property
-     *
-     * @return string
-     */
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
-
-
-    /**
      * Set a custom json converter
      *
      * @param  Closure  $closure
@@ -474,6 +499,11 @@ class Property implements JsonSerializable
 
 
 
+    /**
+     * convert this property to json
+     *
+     * @return mixed
+     */
     public function jsonSerialize(): mixed
     {
         return call_user_func($this->json_callback, $this->value);
@@ -482,7 +512,7 @@ class Property implements JsonSerializable
 
 
     /**
-     * Set a nullable rule
+     * Shortcut to set a nullable rule
      *
      * @return $this
      */
@@ -494,28 +524,13 @@ class Property implements JsonSerializable
 
 
     /**
-     * set a required rule
+     * shortcut to set a required rule
      *
      * @return $this
      */
     public function required(): Property
     {
         return $this->addRule('required');
-    }
-
-
-
-    /**
-     * Set a bunch of rules
-     *
-     * @param  array  $rules
-     *
-     * @return $this
-     */
-    public function rules(array $rules): Property
-    {
-        $this->rules = array_merge($this->rules, $rules);
-        return $this;
     }
 
 
@@ -536,7 +551,7 @@ class Property implements JsonSerializable
 
 
     /**
-     * Set a custom function for settinhg the value
+     * Set a custom closure for setting the value
      *
      * @param  Closure  $closure
      *
@@ -551,6 +566,8 @@ class Property implements JsonSerializable
 
 
     /**
+     * Validate this property
+     *
      * @return ObjectValidation
      * @throws ObjectModelException
      */
@@ -560,13 +577,72 @@ class Property implements JsonSerializable
             return $this->value->validate();
         }
 
-        $validator = Validator::make([$this->name => $this->value], [$this->name => $this->rules]);
+        $validator = Validator::make([$this->getName() => $this->value], [$this->getName() => $this->rules]);
 
-        return ObjectValidation::createFrom(array: [
-            'name'   => $this->name,
+        return ObjectValidation::create(array: [
+            'name'   => $this->getName(),
             'valid'  => $validator->passes(),
             'errors' => $validator->getMessageBag()->toArray(),
         ]);
+    }
+
+
+
+    /**
+     * An Array property
+     *
+     * @param  string  $name
+     * @param  string|null  $arrayModel
+     * @param  string|null  $objectModel
+     * @param  Property|null  $property
+     *
+     * @return static
+     */
+    protected static function arrayProperty(string $name, string $arrayModel = null, string $objectModel = null, Property $property = null): Property
+    {
+        // the ArrayModel class is the default handler for objectModel and property arrays
+        if ( ! $arrayModel && ($objectModel || $property)) {
+            $arrayModel = ArrayModel::class;
+        }
+
+        if ($arrayModel && $arrayModel != ArrayModel::class) {
+            // An ArrayModel has been extended...
+            $array = new $arrayModel(name: $name);
+            $rule  = new IsInstanceOf($arrayModel);
+        } elseif ($objectModel) {
+            // this is an array of objectModels
+            $array = new $arrayModel(name: $name, objectModel: $objectModel);
+            $rule  = new IsInstanceOf(ArrayModel::class);
+        } elseif ($property) {
+            // this is an array of properties
+            $array = new $arrayModel(name: $name, property: $property);
+            $rule  = new IsInstanceOf(ArrayModel::class);
+        } else {
+            // just a normal array
+            $array = [];
+            $rule  = 'array';
+        }
+
+        return self::property($name)
+            ->addRule($rule)
+            ->setCallback(function ($value) use ($name, $array, $arrayModel) {
+                if (is_null($value)) {
+                    return $array;
+                }
+
+                if ( ! is_countable($value)) {
+                    throw ObjectModelException::withMessage("{$name} expected an array of data");
+                }
+
+                // Values should be objects or properties.
+                if ($arrayModel && count($value) > 0) {
+                    return $array->fill($value);
+                }
+
+                // Must be a normal array
+                return $value;
+            })
+            ->set(null);
     }
 
 }
