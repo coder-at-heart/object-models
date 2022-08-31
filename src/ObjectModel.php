@@ -11,7 +11,7 @@ use JsonSerializable;
 class ObjectModel implements JsonSerializable
 {
 
-    use HasName,CanBeConverted;
+    use HasName, CanBeConverted;
 
     /**
      * Used to store the post data
@@ -24,12 +24,12 @@ class ObjectModel implements JsonSerializable
     /**
      * Constructor
      *
-     * @param  array  $array
-     * @param  string  $json
+     * @param  array|null  $array  $array
+     * @param  string|null  $json
      *
      * @throws ObjectModelException
      */
-    public function __construct(array $array = [], string $json = '')
+    public function __construct(?array $array = [], ?string $json = '')
     {
         if ($json && ! empty($array)) {
             throw ObjectModelException::withMessage('Cannot create ObjectModel, expected either array or json data. Both specified.');
@@ -184,6 +184,17 @@ class ObjectModel implements JsonSerializable
 
 
 
+    public function getRules(): array
+    {
+        $rules = [];
+        foreach ($this->_properties->getProperties() as $property) {
+            $rules[$property->getName()] = $property->getRules();
+        }
+        return $rules;
+    }
+
+
+
     /**
      * check if a property has been set
      *
@@ -244,17 +255,6 @@ class ObjectModel implements JsonSerializable
         return $this->_properties[$name];
     }
 
-
-    public function getRules() : array
-    {
-
-        $rules = [];
-        foreach($this->_properties->getProperties() as $property) {
-            $rules[$property->getName()] = $property->getRules();
-
-        }
-        return $rules;
-}
 
 
     /**
