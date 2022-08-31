@@ -103,13 +103,13 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
      * @param  string  $name
      * @param  string|null  $objectModel
      * @param  Property|null  $property
-     * @param  array  $array
+     * @param  array|null  $array  $array
      * @param  string|null  $json
      *
      * @return static
      * @throws ObjectModelException
      */
-    public static function create(string $name = '', string $objectModel = null, Property $property = null, array $array = [], string $json = null): static
+    public static function create(string $name = '', string $objectModel = null, Property $property = null, ?array $array = [], ?string $json = null): static
     {
         return new static(
             name       : $name,
