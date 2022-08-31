@@ -461,6 +461,8 @@ class Person extends ObjectModel
 }
 ```
 
+You can get rules on an objectModel using `$person->getRules()`
+
 ## Got an idea / Suggestion / Improvement? 
 
 Let me know... somehow.
@@ -475,4 +477,4 @@ Let me know... somehow.
 ObjectModel is licensed under the [MIT License](LICENSE).
 
 
-v1.1.0
+v1.1.1
