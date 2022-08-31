@@ -17,7 +17,7 @@ use JsonSerializable;
 class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
 {
 
-    use HasName,CanBeConverted;
+    use HasName, CanBeConverted;
 
     /**
      * The Object Model that each element represents
@@ -55,12 +55,12 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
      * @param  string  $name
      * @param  string|null  $objectModel
      * @param  Property|null  $property
-     * @param  array  $array
+     * @param  array|null  $array
      * @param  string|null  $json
      *
      * @throws ObjectModelException
      */
-    public function __construct(string $name = '', string $objectModel = null, Property $property = null, array $array = [], string $json = null)
+    public function __construct(string $name = '', string $objectModel = null, Property $property = null, ?array $array = [], ?string $json = null)
     {
         if ($property && $objectModel) {
             throw ObjectModelException::withMessage('Cannot create ArrayModel, expected either objectModel or property. Both specified');
