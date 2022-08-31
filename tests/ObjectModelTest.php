@@ -182,3 +182,11 @@ test('we can create an object with custom properties', function () {
 
     expect($usAddress->zip)->toBe('90210');
 });
+
+
+test('we can get rules as an array', function() use ($sunil) {
+
+    expect($sunil->getRules())->toBeArray()->not->toBeEmpty();
+    dd($sunil->getRules());
+
+});

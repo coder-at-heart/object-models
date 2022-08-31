@@ -403,7 +403,8 @@ class Property implements JsonSerializable
      */
     public static function string(string $name): Property
     {
-        return self::property($name);
+        return self::property($name)
+            ->addRule('string');
     }
 
 
@@ -480,6 +481,18 @@ class Property implements JsonSerializable
     public function default($value): Property
     {
         return $this->set($value);
+    }
+
+
+
+    /**
+     * get all rules for this property
+     *
+     * @return array
+     */
+    public function getRules(): array
+    {
+        return $this->rules;
     }
 
 
