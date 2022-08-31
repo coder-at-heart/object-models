@@ -25,7 +25,7 @@ class Person extends ObjectModel
     public static function properties(): array
     {
         return [
-            Property::string('name'),
+            Property::string('name')->required(),
             Property::integer('age'),
             Property::email('email'),
             Property::propertyArray('important_dates', Property::date('date')),

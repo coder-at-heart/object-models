@@ -245,6 +245,17 @@ class ObjectModel implements JsonSerializable
     }
 
 
+    public function getRules() : array
+    {
+
+        $rules = [];
+        foreach($this->_properties->getProperties() as $property) {
+            $rules[$property->getName()] = $property->getRules();
+
+        }
+        return $rules;
+}
+
 
     /**
      * Validate this Object
