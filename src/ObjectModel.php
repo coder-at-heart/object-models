@@ -53,13 +53,13 @@ class ObjectModel implements JsonSerializable
      * Object::CreateFrom(array: $arrayData);
      * Object::CreateFrom(json: $jsonString);
      *
-     * @param  array  $array
-     * @param  string  $json
+     * @param  array|null  $array  $array
+     * @param  string|null  $json
      *
      * @return static
      * @throws ObjectModelException
      */
-    public static function create(array $array = [], string $json = ''): static
+    public static function create(?array $array = [], ?string $json = ''): static
     {
         return new static(
             array: $array,
