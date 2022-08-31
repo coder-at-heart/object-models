@@ -167,7 +167,7 @@ class ObjectModel implements JsonSerializable
             throw ObjectModelException::withMessage("property $key not defined for this object model ".get_class($this));
         }
 
-        return $this->_properties[$key]->value;
+        return $this->_properties->get($key);
     }
 
 
