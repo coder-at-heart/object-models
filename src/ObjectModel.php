@@ -227,16 +227,18 @@ class ObjectModel implements JsonSerializable
      * @param $key
      * @param $value
      *
-     * @return void
+     * @return static
      * @throws ObjectModelException
      */
-    public function set($key, $value = null): void
+    public function set($key, $value = null): static
     {
         if ( ! $this->_properties->has($key)) {
             throw ObjectModelException::withMessage("property $key not defined for this object model ".get_class($this));
         }
 
         $this->_properties->set($key, $value);
+
+        return $this;
     }
 
 
