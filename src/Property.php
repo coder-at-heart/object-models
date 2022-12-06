@@ -256,7 +256,7 @@ class Property implements JsonSerializable
         return self::property($name)
             ->addRule('integer')
             ->setCallback(function ($value) {
-                return $value ? (int) $value : null;
+                return is_numeric($value) ? (int) $value : null;
             })
             ->set(null);
     }
@@ -498,6 +498,44 @@ class Property implements JsonSerializable
 
 
     /**
+     * Does this property contain a rule?
+     *
+     * @param  string  $rule
+     *
+     * @return bool
+     */
+    public function hasRule(string $rule): bool
+    {
+        return in_array($rule, $this->rules);
+    }
+
+
+
+    /**
+     * can this property be null?
+     *
+     * @return bool
+     */
+    public function isNullable(): bool
+    {
+        return $this->hasRule('nullable');
+    }
+
+
+
+    /**
+     * is a value required?
+     *
+     * @return bool
+     */
+    public function isRequired(): bool
+    {
+        return $this->hasRule('required');
+    }
+
+
+
+    /**
      * Set a custom json converter
      *
      * @param  Closure  $closure
@@ -557,7 +595,11 @@ class Property implements JsonSerializable
      */
     public function set(mixed $value): Property
     {
-        $this->value = call_user_func($this->set_callback, $value);
+        if ($this->isNullable() && is_null($value)) {
+            $this->value = null;
+        } else {
+            $this->value = call_user_func($this->set_callback, $value);
+        }
         return $this;
     }
 

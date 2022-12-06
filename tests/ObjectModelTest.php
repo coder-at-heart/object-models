@@ -187,6 +187,5 @@ test('we can create an object with custom properties', function () {
 test('we can get rules as an array', function() use ($sunil) {
 
     expect($sunil->getRules())->toBeArray()->not->toBeEmpty();
-    dd($sunil->getRules());
-
+    //dd($sunil->getRules());
 });
