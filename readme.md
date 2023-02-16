@@ -11,7 +11,7 @@ This Laravel package:
 
 This package requires 
 - PHP 8.1 and 
-- Laravel 8.0 or higher.
+- Laravel 8.0 or higher (including 10).
 
 ## Installation
 
@@ -477,4 +477,4 @@ Let me know... somehow.
 ObjectModel is licensed under the [MIT License](LICENSE).
 
 
-v1.1.6
+v1.1.7
