@@ -18,7 +18,7 @@ This package requires
 Install it:
 
 ```bash
-composer require coder-at-heart/object-model
+composer require coder-at-heart/object-models
 ```
 
 ## Defining ObjectModels
@@ -470,11 +470,11 @@ Let me know... somehow.
 
 ## Support
 
-- [Issue Tracker](https://github.com/code-at-heart/object-model/issues/)
+- [Issue Tracker](https://github.com/coder-at-heart/object-models/issues/)
 
 ## License
 
 ObjectModel is licensed under the [MIT License](LICENSE).
 
 
-v1.1.7
+v1.1.8
