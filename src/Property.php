@@ -595,7 +595,7 @@ class Property implements JsonSerializable
      */
     public function set(mixed $value): Property
     {
-        if ($this->isNullable() && is_null($value)) {
+        if ($this->isNullable() && empty($value)) {
             $this->value = null;
         } else {
             $this->value = call_user_func($this->set_callback, $value);
@@ -682,7 +682,7 @@ class Property implements JsonSerializable
             ->addRule($rule)
             ->setCallback(function ($value) use ($name, $array, $arrayModel) {
                 if (is_null($value)) {
-                    return $this->isNullable() ? $value : $array;
+                    return $array;
                 }
 
                 if ( ! is_countable($value)) {
