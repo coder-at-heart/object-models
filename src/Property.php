@@ -682,7 +682,7 @@ class Property implements JsonSerializable
             ->addRule($rule)
             ->setCallback(function ($value) use ($name, $array, $arrayModel) {
                 if (is_null($value)) {
-                    return $array;
+                    return $this->isNullable() ? $value : $array;
                 }
 
                 if ( ! is_countable($value)) {
