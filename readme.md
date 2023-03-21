@@ -463,6 +463,34 @@ class Person extends ObjectModel
 
 You can get rules on an objectModel using `$person->getRules()`
 
+## Ignoring undefined properties 
+By default ObjectModels throws an exception if you try and set a property that hasn't been defined.
+
+Get around that by using the IgnoreUndefinedProperties trait
+```php
+<?php
+
+use \CoderAtHeart\ObjectModel\Traits\IgnoreUndefinedProperties;
+
+class Person extends ObjectModel
+{
+
+    use IgnoreUndefinedProperties;
+
+    public static function properties(): array
+    {
+        return [
+            Property::string('name')->required(), //  just adds 'required' to the rules array
+            Property::integer('age')->nullable(), // optional
+            Property::email('email')->addRule('min:20'),
+            Property::string('first_name')->addRule(new Rule()), // custom rules
+        ];
+    }
+
+}
+```
+
+
 ## Got an idea / Suggestion / Improvement? 
 
 Let me know... somehow.
