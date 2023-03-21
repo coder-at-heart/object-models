@@ -6,6 +6,7 @@ use CoderAtHeart\ObjectModel\Exceptions\ObjectModelException;
 use CoderAtHeart\ObjectModel\Models\ObjectValidation;
 use CoderAtHeart\ObjectModel\Traits\CanBeConverted;
 use CoderAtHeart\ObjectModel\Traits\HasName;
+use CoderAtHeart\ObjectModel\Traits\IgnoreUndefinedProperties;
 use JsonSerializable;
 
 class ObjectModel implements JsonSerializable
@@ -232,13 +233,15 @@ class ObjectModel implements JsonSerializable
      */
     public function set($key, $value = null): static
     {
-        if ( ! $this->_properties->has($key)) {
-            throw ObjectModelException::withMessage("property $key not defined for this object model ".get_class($this));
+        if ($this->_properties->has($key)) {
+            $this->_properties->set($key, $value);
+            return $this;
+        }
+        if ($this->_usesTrait(IgnoreUndefinedProperties::class)) {
+            return $this;
         }
 
-        $this->_properties->set($key, $value);
-
-        return $this;
+        throw ObjectModelException::withMessage("property $key not defined for this object model ".get_class($this));
     }
 
 
@@ -284,6 +287,33 @@ class ObjectModel implements JsonSerializable
             'valid'  => $valid,
             'errors' => $errors,
         ]);
+    }
+
+
+
+    protected function _getTraits()
+    {
+        $class  = $this;
+        $traits = [];
+
+        do {
+            $traits = array_merge(class_uses($class,), $traits);
+        } while ($class = get_parent_class($class));
+        foreach ($traits as $trait => $same) {
+            $traits = array_merge(class_uses($trait,), $traits);
+        }
+
+        return array_unique($traits);
+    }
+
+
+
+    protected function _usesTrait(string $class): bool
+    {
+        return in_array(
+            $class,
+            $this->_getTraits()
+        );
     }
 
 }

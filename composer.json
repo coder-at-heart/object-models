@@ -28,7 +28,7 @@
     "illuminate/validation": "^8.0 || ^9.0 || ^10.0"
   },
   "require-dev": {
-    "pestphp/pest": "^1.21",
+    "pestphp/pest": "^v2.1.0",
     "symfony/var-dumper": "^6.1"
   },
   "autoload": {
