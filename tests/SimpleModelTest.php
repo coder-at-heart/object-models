@@ -2,7 +2,7 @@
 
 use CoderAtHeart\ObjectModel\Tests\Models\Order;
 
-test('array with nullable are null', function () {
+it('returns null for an array with nullable()', function () {
     $order = new Order();
 
     expect($order->items)->toBeNull();

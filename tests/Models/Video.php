@@ -4,19 +4,20 @@ namespace CoderAtHeart\ObjectModel\Tests\Models;
 
 use CoderAtHeart\ObjectModel\ObjectModel;
 use CoderAtHeart\ObjectModel\Property;
+use CoderAtHeart\ObjectModel\Traits\IgnoreUndefinedProperties;
 
 /**
- * @property string id
- * @property array items
+ * @property string url
  *
  */
-class Order extends ObjectModel
+class Video extends ObjectModel
 {
+    use IgnoreUndefinedProperties;
 
     public static function properties(): array
     {
         return [
-            Property::array('items')->nullable()->default(null),
+            Property::string('url'),
         ];
     }
 
