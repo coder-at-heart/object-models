@@ -148,7 +148,7 @@ class Property implements JsonSerializable
 
         return self::property($name)
             ->addRule(new IsInstanceOf(Carbon::class))
-            ->jsonCallback(function (Carbon $value) use ($format) {
+            ->jsonCallback(function (?Carbon $value) use ($format) {
                 return $value?->format($format);
             })
             ->setCallback(function ($value) use ($name, $format, $timezone) {
