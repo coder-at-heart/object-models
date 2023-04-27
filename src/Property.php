@@ -153,7 +153,7 @@ class Property implements JsonSerializable
             })
             ->setCallback(function ($value) use ($name, $format, $timezone) {
                 if (is_null($value)) {
-                    return new Carbon(tz: $timezone);
+                    return null; //Carbon::now(tz: $timezone)->format($format);
                 }
 
                 if ($value instanceof Carbon) {
