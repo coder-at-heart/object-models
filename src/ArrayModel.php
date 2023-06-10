@@ -149,12 +149,12 @@ class ArrayModel implements ArrayAccess, Countable, Iterator, JsonSerializable
     /**
      * fill this array.
      *
-     * @param  array  $array
+     * @param  array|ArrayModel  $array  $array
      *
      * @return $this
      * @throws ObjectModelException
      */
-    public function fill(array $array): static
+    public function fill(array|ArrayModel $array): static
     {
         if ( ! $this->objectModel && ! isset($this->property)) {
             throw ObjectModelException::withMessage("Cannot create array, no objectModel or property has been set");
